@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 class Helpers {
   // Format currency
   static String formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
+    return '${amount.toStringAsFixed(2)} TND';
   }
   
   // Format date
