@@ -1,0 +1,81 @@
+# Model files
+*.h5
+*.hdf5
+*.pb
+*.ckpt
+*.pth
+*.pt
+
+# Scaler and preprocessing files
+*.pkl
+*.pickle
+
+# Training data
+pollution_dataset/
+data/
+dataset/
+images/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.webp
+*.gif
+
+# Sensor data files
+*.csv
+*.json
+!sensor_config*.json
+
+# Training outputs
+*.log
+training_history*.png
+predictions*.png
+sensor_predictions*.png
+pollution_predictions*.json
+sensor_predictions*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
