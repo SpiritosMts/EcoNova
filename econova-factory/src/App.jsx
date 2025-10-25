@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Map from './pages/Map';
 import Predictions from './pages/Predictions';
 import History from './pages/History';
+import Requests from './pages/Requests';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 
@@ -80,6 +81,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <History />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/requests"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Requests />
             </Layout>
           </ProtectedRoute>
         }

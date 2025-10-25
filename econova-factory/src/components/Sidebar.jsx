@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Map, TrendingUp, Settings, LogOut, History } from 'lucide-react';
+import { Home, Map, TrendingUp, Settings, LogOut, History, FileText } from 'lucide-react';
 import { auth } from '../utils/firebase';
 import { signOut } from 'firebase/auth';
 import { motion } from 'framer-motion';
@@ -10,6 +10,7 @@ const menuItems = [
   { path: '/map', icon: Map, label: 'Pollution Map' },
   { path: '/predictions', icon: TrendingUp, label: 'Predictions' },
   { path: '/history', icon: History, label: 'History' },
+  { path: '/requests', icon: FileText, label: 'Requests' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
