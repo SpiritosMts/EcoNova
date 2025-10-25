@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/firestore_service.dart';
 import '../utils/color_theme.dart';
 import '../utils/tips_data.dart';
+import '../utils/pollution_zones.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -23,7 +24,28 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    _loadPollutionZones();
     _loadReports();
+  }
+  
+  void _loadPollutionZones() {
+    // Load predefined pollution zones from factory data
+    setState(() {
+      _circles = pollutionZones.map((zone) {
+        final colorScheme = getPollutionColorScheme(zone.level);
+        
+        return Circle(
+          circleId: CircleId(zone.id),
+          center: zone.center,
+          radius: getRadiusForZone(zone.pollution),
+          fillColor: colorScheme.fill,
+          strokeColor: colorScheme.stroke,
+          strokeWidth: 2,
+          consumeTapEvents: true,
+          onTap: () => _showZoneDetails(zone),
+        );
+      }).toSet();
+    });
   }
 
   @override
@@ -36,28 +58,32 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final reports = await _firestoreService.getMapReports();
 
-      setState(() {
-        _circles = reports.map((report) {
-          final dangerLevel = (report['danger_level'] as num).toDouble();
-          final lat = (report['latitude'] as num).toDouble();
-          final lng = (report['longitude'] as num).toDouble();
+      // Add user report circles to existing pollution zones
+      final reportCircles = reports.map((report) {
+        final dangerLevel = (report['danger_level'] as num).toDouble();
+        final lat = (report['latitude'] as num).toDouble();
+        final lng = (report['longitude'] as num).toDouble();
 
-          return Circle(
-            circleId: CircleId(report['id']),
-            center: LatLng(lat, lng),
-            radius: _getRadiusForDangerLevel(dangerLevel),
-            fillColor: _getColorForDangerLevel(dangerLevel).withOpacity(0.3),
-            strokeColor: _getColorForDangerLevel(dangerLevel),
-            strokeWidth: 2,
-            consumeTapEvents: true,
-            onTap: () => _showReportDetails(report),
-          );
-        }).toSet();
+        return Circle(
+          circleId: CircleId('report_${report['id']}'),
+          center: LatLng(lat, lng),
+          radius: _getRadiusForDangerLevel(dangerLevel),
+          fillColor: _getColorForDangerLevel(dangerLevel).withOpacity(0.3),
+          strokeColor: _getColorForDangerLevel(dangerLevel),
+          strokeWidth: 2,
+          consumeTapEvents: true,
+          onTap: () => _showReportDetails(report),
+        );
+      }).toSet();
+
+      setState(() {
+        // Merge pollution zones with user reports
+        _circles = {..._circles, ...reportCircles};
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      _showError('Failed to load reports: $e');
+      // Silently fail - pollution zones will still display
     }
   }
 
@@ -70,6 +96,113 @@ class _MapScreenState extends State<MapScreen> {
     if (dangerLevel < 40) return AppColors.moderate;
     if (dangerLevel < 70) return AppColors.warning;
     return AppColors.critical;
+  }
+
+  void _showZoneDetails(PollutionZone zone) {
+    final colorScheme = getPollutionColorScheme(zone.level);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: colorScheme.stroke,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    zone.name,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.background,
+                    colorScheme.fill,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '${zone.pollution.toInt()}%',
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.stroke,
+                    ),
+                  ),
+                  Text(
+                    'Pollution Index',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildDetailRow('Status', colorScheme.label),
+            const SizedBox(height: 12),
+            _buildDetailRow('Trend', zone.trend.toUpperCase()),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colorScheme.stroke.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: colorScheme.stroke.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: colorScheme.stroke,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      TipsData.getTipsForDangerLevel(zone.pollution),
+                      style: TextStyle(
+                        color: colorScheme.stroke,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showReportDetails(Map<String, dynamic> report) {
@@ -226,7 +359,10 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _loadReports,
+        onPressed: () {
+          _loadPollutionZones();
+          _loadReports();
+        },
         backgroundColor: AppColors.primaryGreen,
         child: const Icon(Icons.refresh, color: Colors.white),
       ),
